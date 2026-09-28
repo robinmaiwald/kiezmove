@@ -1,0 +1,45 @@
+[
+  {
+    "id": "anmeldung",
+    "title": "Register your address",
+    "priority": "high",
+    "description": "Handle your address registration after moving into your new Berlin home.",
+    "documents": [
+      "passport",
+      "wohnungsgeberbestaetigung"
+    ],
+    "source": "Berlin Service Portal"
+  },
+  {
+    "id": "rundfunkbeitrag",
+    "title": "Handle Rundfunkbeitrag",
+    "priority": "medium",
+    "description": "Handle the broadcasting contribution for your new household.",
+    "documents": [],
+    "source": "Official source"
+  },
+  {
+    "id": "electricity",
+    "title": "Set up electricity",
+    "priority": "medium",
+    "description": "Make sure your new apartment has the electricity arrangement you need.",
+    "documents": [],
+    "source": "Demo knowledge base"
+  },
+  {
+    "id": "internet",
+    "title": "Set up internet",
+    "priority": "medium",
+    "description": "Arrange an internet connection for your new home.",
+    "documents": [],
+    "source": "Demo knowledge base"
+  },
+  {
+    "id": "address_updates",
+    "title": "Update your address",
+    "priority": "low",
+    "description": "Update your address with relevant organizations such as your bank or employer.",
+    "documents": [],
+    "source": "Demo knowledge base"
+  }
+]
