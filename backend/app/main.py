@@ -13,13 +13,22 @@ and passing work to the appropriate backend services.
 
 from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
-from backend.app.database import SessionLocal
-from backend.app.database_models import UserDB
-from backend.app.models import UserTask
-from backend.app.models import User, Task, UserTask, UserTaskUpdate
-from backend.app.services.eligibility import (load_tasks,get_applicable_tasks,)
-from backend.app.services.user_tasks import (create_user_tasks, get_user_tasks,)
-from backend.app.services.user_task_status import (update_user_task_status,)
+
+from backend.app import database
+from backend.app.services.users import (
+    create_user,
+    get_user_by_id,
+    serialize_user,
+)
+from backend.app.models import Task, User, UserTask, UserTaskUpdate
+from backend.app.services.eligibility import load_tasks
+from backend.app.services.next_task import get_next_user_task
+from backend.app.services.user_task_status import update_user_task_status
+from backend.app.services.user_tasks import (
+    create_task_plan,
+    get_user_tasks,
+    serialize_user_task,
+)
 
 app = FastAPI(
     title="KiezMove API",
@@ -29,7 +38,7 @@ app = FastAPI(
 
 
 def get_db():
-    db = SessionLocal()
+    db = database.SessionLocal()
 
     try:
         yield db
@@ -48,24 +57,11 @@ def get_tasks():
 
 
 @app.post("/users")
-def create_user(
+def create_user_endpoint(
     user: User,
     db: Session = Depends(get_db),
 ):
-    db_user = UserDB(
-        name=user.name,
-        address=user.address,
-        household_size=user.household_size,
-        move_in_date=user.move_in_date,
-        new_to_berlin=user.new_to_berlin,
-        has_wohnungsgeberbestaetigung=user.has_wohnungsgeberbestaetigung,
-        has_children=user.has_children,
-        children_count=user.children_count,
-    )
-
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    db_user = create_user(db, user)
 
     return {
         "id": db_user.id,
@@ -79,62 +75,30 @@ def get_user(
     user_id: int,
     db: Session = Depends(get_db),
 ):
-    user = db.get(UserDB, user_id)
+    user = get_user_by_id(db, user_id)
 
     if user is None:
         return {"error": "User not found"}
 
-    return {
-        "id": user.id,
-        "name": user.name,
-        "address": user.address,
-        "household_size": user.household_size,
-        "move_in_date": user.move_in_date,
-        "new_to_berlin": user.new_to_berlin,
-        "has_wohnungsgeberbestaetigung": user.has_wohnungsgeberbestaetigung,
-        "has_children": user.has_children,
-        "children_count": user.children_count,
-    }
+    return serialize_user(user)
 
 @app.post("/users/{user_id}/tasks", response_model=list[UserTask])
 def create_user_task_plan(
     user_id: int,
     db: Session = Depends(get_db),
 ):
-    user = db.get(UserDB, user_id)
+    user = get_user_by_id(db, user_id)
 
     if user is None:
         return {"error": "User not found"}
 
-    user_data = {
-        "new_to_berlin": user.new_to_berlin,
-        "moving_to_new_address": True,
-    }
-
-    applicable_tasks = get_applicable_tasks(user_data)
-
-    create_user_tasks(
+    user_tasks = create_task_plan(
         db,
-        user_id,
-        applicable_tasks,
-    )
-
-    user_tasks = get_user_tasks(
-        db,
-        user_id,
+        user,
     )
 
     return [
-        UserTask(
-            user_id=str(user_task.user_id),
-            task_id=user_task.task_id,
-            status=user_task.status,
-            completed_at=(
-                user_task.completed_at.isoformat()
-                if user_task.completed_at
-                else None
-            ),
-        )
+        serialize_user_task(user_task)
         for user_task in user_tasks
     ]
 
@@ -144,7 +108,7 @@ def get_user_task_plan(
     user_id: int,
     db: Session = Depends(get_db),
 ):
-    user = db.get(UserDB, user_id)
+    user = get_user_by_id(db, user_id)
 
     if user is None:
         return {"error": "User not found"}
@@ -155,16 +119,7 @@ def get_user_task_plan(
     )
 
     return [
-        UserTask(
-            user_id=str(user_task.user_id),
-            task_id=user_task.task_id,
-            status=user_task.status,
-            completed_at=(
-                user_task.completed_at.isoformat()
-                if user_task.completed_at
-                else None
-            ),
-        )
+        serialize_user_task(user_task)
         for user_task in user_tasks
     ]
 
@@ -188,13 +143,31 @@ def update_task_status(
     if user_task is None:
         return {"error": "User task not found"}
 
-    return UserTask(
-        user_id=str(user_task.user_id),
-        task_id=user_task.task_id,
-        status=user_task.status,
-        completed_at=(
-            user_task.completed_at.isoformat()
-            if user_task.completed_at
-            else None
-        ),
+    return serialize_user_task(user_task)
+
+@app.get("/users/{user_id}/next-task")
+def get_next_task_for_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Return the next incomplete task for a user.
+
+    Returns None when the user has no tasks
+    or all of their tasks are completed.
+    """
+
+    user = get_user_by_id(db, user_id)
+
+    if user is None:
+        return {"error": "User not found"}
+
+    next_task = get_next_user_task(
+        db,
+        user_id,
     )
+
+    if next_task is None:
+        return None
+
+    return next_task

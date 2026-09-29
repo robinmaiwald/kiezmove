@@ -153,3 +153,40 @@ Database structure is defined using SQLAlchemy models in:
 To initialize the database:
 
     python -m backend.app.init_db
+
+
+
+
+| Method  | Endpoint                           | Purpose                                 |
+| ------- | ---------------------------------- | --------------------------------------- |
+| `GET`   | `/health`                          | Check that the API is running           |
+| `GET`   | `/tasks`                           | Get all reusable task definitions       |
+| `POST`  | `/users`                           | Create a new user                       |
+| `GET`   | `/users/{user_id}`                 | Get a user's profile                    |
+| `POST`  | `/users/{user_id}/tasks`           | Create/initialize that user's task plan |
+| `GET`   | `/users/{user_id}/tasks`           | Get the user's task plan                |
+| `PATCH` | `/users/{user_id}/tasks/{task_id}` | Change a task's status                  |
+| `GET`   | `/users/{user_id}/next-task`       | Get the user's next incomplete task     |
+
+
+
+
+
+
+
+
+
+
+```mermaid
+flowchart TD
+    A["POST /users"] --> B["Create user"]
+    B --> C["POST /users/{id}/tasks"]
+    C --> D["Eligibility rules"]
+    D --> E["Create UserTask records"]
+    E --> F["GET /users/{id}/tasks"]
+    F --> G["User sees their task plan"]
+    G --> H["GET /users/{id}/next-task"]
+    H --> I["Planner finds next incomplete task"]
+    I --> J["PATCH /users/{id}/tasks/{task_id}"]
+    J --> K["Mark task completed/pending"]
+    K --> H

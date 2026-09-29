@@ -76,3 +76,60 @@ def test_get_next_task_returns_none_when_all_tasks_are_complete():
     )
 
     assert next_task is None
+
+
+def test_create_plan_puts_unknown_priority_last():
+    """
+    Tasks with unknown priorities should appear after
+    high, medium, and low priority tasks.
+    """
+
+    tasks = [
+        {"id": "unknown", "priority": "urgent"},
+        {"id": "low", "priority": "low"},
+        {"id": "high", "priority": "high"},
+        {"id": "medium", "priority": "medium"},
+    ]
+
+    plan = create_plan(tasks)
+
+    task_ids = [task["id"] for task in plan]
+
+    assert task_ids == [
+        "high",
+        "medium",
+        "low",
+        "unknown",
+    ]
+
+
+def test_create_plan_preserves_order_for_same_priority():
+    """
+    Tasks with the same priority should keep their original order.
+    """
+
+    tasks = [
+        {"id": "first", "priority": "medium"},
+        {"id": "second", "priority": "medium"},
+        {"id": "third", "priority": "medium"},
+    ]
+
+    plan = create_plan(tasks)
+
+    task_ids = [task["id"] for task in plan]
+
+    assert task_ids == [
+        "first",
+        "second",
+        "third",
+    ]
+
+
+def test_get_next_task_returns_none_for_empty_task_list():
+    """
+    When there are no tasks, there should be no next task.
+    """
+
+    next_task = get_next_task([])
+
+    assert next_task is None
