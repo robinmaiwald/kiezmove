@@ -53,3 +53,11 @@ class UserTask(BaseModel):
     status: str = "pending"
 
     completed_at: str | None = None
+
+
+class UserTaskUpdate(BaseModel):
+    """
+    Request model used when updating the status of a user's task.
+    """
+
+    status: str

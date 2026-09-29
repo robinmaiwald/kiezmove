@@ -13,19 +13,13 @@ and passing work to the appropriate backend services.
 
 from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
-
 from backend.app.database import SessionLocal
 from backend.app.database_models import UserDB
 from backend.app.models import UserTask
-from backend.app.models import User, Task, UserTask
-from backend.app.services.eligibility import (
-    load_tasks,
-    get_applicable_tasks,
-)
-from backend.app.services.user_tasks import (
-    create_user_tasks,
-    get_user_tasks,
-)
+from backend.app.models import User, Task, UserTask, UserTaskUpdate
+from backend.app.services.eligibility import (load_tasks,get_applicable_tasks,)
+from backend.app.services.user_tasks import (create_user_tasks, get_user_tasks,)
+from backend.app.services.user_task_status import (update_user_task_status,)
 
 app = FastAPI(
     title="KiezMove API",
@@ -173,3 +167,34 @@ def get_user_task_plan(
         )
         for user_task in user_tasks
     ]
+
+@app.patch(
+    "/users/{user_id}/tasks/{task_id}",
+    response_model=UserTask,
+)
+def update_task_status(
+    user_id: int,
+    task_id: str,
+    update: UserTaskUpdate,
+    db: Session = Depends(get_db),
+):
+    user_task = update_user_task_status(
+        db,
+        user_id,
+        task_id,
+        update.status,
+    )
+
+    if user_task is None:
+        return {"error": "User task not found"}
+
+    return UserTask(
+        user_id=str(user_task.user_id),
+        task_id=user_task.task_id,
+        status=user_task.status,
+        completed_at=(
+            user_task.completed_at.isoformat()
+            if user_task.completed_at
+            else None
+        ),
+    )
