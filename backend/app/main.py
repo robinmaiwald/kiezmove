@@ -10,12 +10,14 @@ The API is responsible for receiving validated requests
 and passing work to the appropriate backend services.
 """
 
+
 from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
 
 from backend.app.database import SessionLocal
 from backend.app.database_models import UserDB
-from backend.app.models import User
+from backend.app.models import User, Task
+from backend.app.services.eligibility import load_tasks
 
 app = FastAPI(
     title="KiezMove API",
@@ -36,6 +38,11 @@ def get_db():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/tasks", response_model=list[Task])
+def get_tasks():
+    return load_tasks()
 
 
 @app.post("/users")
